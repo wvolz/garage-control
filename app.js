@@ -51,6 +51,7 @@ gpio.on('change', function(channel, value) {
         io.sockets.emit('log', status);
         //console.log("GARAGE_GPIO " + status);
     }
+    console.log("GPIO Change, new status: " + status);
 });
 
 // config up down monitor pins to report status
