@@ -6,7 +6,7 @@
     "start": "node app"
   },
   "dependencies": {
-    "express": "3.4.8",
+    "express": "3.5.0",
     "jade": "*",
     "async": "0.2.6",
     "rpi-gpio": "0.0.4",
