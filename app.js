@@ -39,18 +39,22 @@ function delayPinWrite(pin, value, callback) {
 gpio.on('change', function(channel, value) {
     //console.log("GPIO STATUS C: " + channel + " V: " + value);
     if (channel == config.GARAGE_DOWN) {
-        if (value == true) status = 'DOWN';
-        if (value == false) status = 'BTWN';
-        io.sockets.emit('ginfo', status);
-        io.sockets.emit('log', status);
-        //console.log("GARAGE_GPIO " + status);
+        if (gpio_state[config.GARAGE_UP] == false) {
+            if (value == true) status = 'DOWN';
+            if (value == false) status = 'BTWN';
+            io.sockets.emit('ginfo', status);
+            io.sockets.emit('log', status);
+            //console.log("GARAGE_GPIO " + status);
+        }
     }
     if (channel == config.GARAGE_UP) {
-        if (value == true) status = 'UP';
-        if (value == false) status = 'BTWN';
-        io.sockets.emit('ginfo', status);
-        io.sockets.emit('log', status);
-        //console.log("GARAGE_GPIO " + status);
+        if (gpio_state[config.GARAGE_DOWN] == false) {
+            if (value == true) status = 'UP';
+            if (value == false) status = 'BTWN';
+            io.sockets.emit('ginfo', status);
+            io.sockets.emit('log', status);
+            //console.log("GARAGE_GPIO " + status);
+        }
     }
     console.log("GPIO Change, new status: " + status);
 });
