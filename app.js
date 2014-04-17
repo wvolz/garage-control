@@ -6,7 +6,8 @@ var express = require('express'),
     gpio = require('rpi-gpio'),
     app = express(),
     server = require('http').createServer(app),
-    io = require('socket.io').listen(server);
+    io = require('socket.io').listen(server),
+    mongoose = require('mongoose');
 
 // persistant variables
 var gpio_state = new Array();
@@ -27,6 +28,20 @@ app.configure(function(){
 server.listen(app.get('port'))
 console.log("Listening on port " + app.get('port'));
 
+mongoose.connect(config.DB_CONNECT_STRING);
+
+var garageLogSchema = mongoose.Schema({
+    date: { type: Date, default: Date.now },
+    action: String
+});
+var garageLog = mongoose.model('garageLog', garageLogSchema);
+
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'mongodb connection error'));
+db.once('open', function callback () {
+    console.log('Connected to MongoDB');
+});
+
 app.get('/', routes.index);
 
 function delayPinWrite(pin, value, callback) {
@@ -44,6 +59,10 @@ gpio.on('change', function(channel, value) {
             if (value == false) status = 'BTWN';
             io.sockets.emit('ginfo', status);
             io.sockets.emit('log', status);
+            var a = new garageLog({ action: status });
+            a.save(function (err, garageLog) {
+                if (err) return console.err(err);
+            });
             //console.log("GARAGE_GPIO " + status);
         }
     }

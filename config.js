@@ -12,4 +12,6 @@ config.RELAY_ON = 1;
 config.RELAY_OFF = 0;
 config.RELAY_TIMEOUT = 500;
 
+config.DB_CONNECT_STRING = '';
+
 module.exports = config;

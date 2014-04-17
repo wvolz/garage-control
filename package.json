@@ -1,6 +1,6 @@
 {
   "name": "RpiGarage",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "start": "node app"
@@ -10,6 +10,7 @@
     "jade": "*",
     "async": "0.2.6",
     "rpi-gpio": "0.0.4",
-    "socket.io": "0.9.16"
+    "socket.io": "0.9.16",
+    "mongoose": "3.8.8"
   }
 }
