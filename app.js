@@ -7,7 +7,8 @@ var express = require('express'),
     app = express(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
-    mongoose = require('mongoose');
+    pg = require('pg'),
+    nodemailer = require('nodemailer');
 
 // persistant variables
 var gpio_state = new Array();
@@ -28,20 +29,6 @@ app.configure(function(){
 server.listen(app.get('port'))
 console.log("Listening on port " + app.get('port'));
 
-mongoose.connect(config.DB_CONNECT_STRING);
-
-var garageLogSchema = mongoose.Schema({
-    date: { type: Date, default: Date.now },
-    action: String
-});
-var garageLog = mongoose.model('garageLog', garageLogSchema);
-
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'mongodb connection error'));
-db.once('open', function callback () {
-    console.log('Connected to MongoDB');
-});
-
 app.get('/', routes.index);
 
 function delayPinWrite(pin, value, callback) {
@@ -49,6 +36,11 @@ function delayPinWrite(pin, value, callback) {
         gpio.write(pin, value, callback);
     }, config.RELAY_TIMEOUT);
 }
+
+// config up down monitor pins to report status
+gpio.setup(config.GARAGE_DOWN, gpio.DIR_IN);
+gpio.setup(config.GARAGE_UP, gpio.DIR_IN);
+gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
 
 // code below to listen for changes to gpio
 gpio.on('change', function(channel, value) {
@@ -59,10 +51,8 @@ gpio.on('change', function(channel, value) {
             if (value == false) status = 'BTWN';
             io.sockets.emit('ginfo', status);
             io.sockets.emit('log', status);
-            var a = new garageLog({ action: status });
-            a.save(function (err, garageLog) {
-                if (err) return console.err(err);
-            });
+            log_action_to_db(status);
+            send_email_notify(status);
             //console.log("GARAGE_GPIO " + status);
         }
     }
@@ -72,16 +62,13 @@ gpio.on('change', function(channel, value) {
             if (value == false) status = 'BTWN';
             io.sockets.emit('ginfo', status);
             io.sockets.emit('log', status);
+            log_action_to_db(status);
+            send_email_notify(status);
             //console.log("GARAGE_GPIO " + status);
         }
     }
     console.log("GPIO Change, new status: " + status);
 });
-
-// config up down monitor pins to report status
-gpio.setup(config.GARAGE_DOWN, gpio.DIR_IN);
-gpio.setup(config.GARAGE_UP, gpio.DIR_IN);
-gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
 
 io.sockets.on('connection', function (socket) {
     var connectAddr = socket.handshake.address;
@@ -116,7 +103,10 @@ io.sockets.on('connection', function (socket) {
     });
 });
 
-function gpio_read_state_pin(pin) {
+function gpio_read_state_pin(pin, emit_change) {
+    //console.trace("gpio read");
+    // default value for emit_change = true
+    emit_change = emit_change || true;
     gpio.read(pin, function(err, value) {
         if (err){
             console.log("ERR: " + err);
@@ -126,9 +116,43 @@ function gpio_read_state_pin(pin) {
                 console.log("p: " + pin + "c: " + cur_state + "v: " + value);
                 var prev_state = cur_state;
                 gpio_state[pin] = value;
-                gpio.emit('change', pin, value);
+                if (emit_change) {
+                    gpio.emit('change', pin, value);
+                }
             }
         }
+    });
+}
+
+function log_action_to_db(action) {
+    pg.connect(config.DB_CONNECT_STRING, function(err, client, done) {
+        if(err) {
+            return console.error('error fetching pg client from pool', err);
+        }
+        client.query("INSERT INTO " + config.DB_LOG_TABLE + " (action) VALUES ($1)", [action], function(err) {
+            if (err) {
+                return console.error('error running query', err);
+            }
+            client.end();
+        });
+    });
+}
+
+function send_email_notify(msg) {
+    var smtpTransport = nodemailer.createTransport("SMTP");
+    var mailOptions = {
+        from: config.notify_from,
+        to: config.notify_to,
+        subject: "Garage Notification: " + msg,
+        text: "Notification of garage action: " + msg
+    }
+    smtpTransport.sendMail(mailOptions, function(error, response){
+        if(error) {
+            console.log(error);
+        } else {
+            console.log("Email notification sent: " + response.message);
+        }
+    	smtpTransport.close();
     });
 }
 

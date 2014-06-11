@@ -13,5 +13,10 @@ config.RELAY_OFF = 0;
 config.RELAY_TIMEOUT = 500;
 
 config.DB_CONNECT_STRING = '';
+config.DB_LOG_TABLE = 'log';
+
+// email notification defaults
+config.notify_from = "Garage Pi <pi@garagepi>"
+config.notify_to = "changeme@host"
 
 module.exports = config;
