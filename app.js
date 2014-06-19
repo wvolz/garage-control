@@ -12,7 +12,7 @@ var express = require('express'),
 
 // persistant variables
 var gpio_state = new Array();
-var status = 'BTWN';
+var status = 'Unknown';
 
 app.configure(function(){
     app.set('port', process.env.PORT || 3000);
@@ -45,6 +45,7 @@ gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
 // code below to listen for changes to gpio
 gpio.on('change', function(channel, value) {
     //console.log("GPIO STATUS C: " + channel + " V: " + value);
+    var old_status = status;
     if (channel == config.GARAGE_DOWN) {
         if (gpio_state[config.GARAGE_UP] == false) {
             if (value == true) status = 'DOWN';
@@ -67,7 +68,10 @@ gpio.on('change', function(channel, value) {
             //console.log("GARAGE_GPIO " + status);
         }
     }
-    console.log("GPIO Change, new status: " + status);
+    if (old_status != status) {
+        console.log("GPIO Change, new status: " + status
+                    + " Old: " + old_status);
+    }
 });
 
 io.sockets.on('connection', function (socket) {
