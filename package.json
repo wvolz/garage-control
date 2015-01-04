@@ -6,12 +6,16 @@
     "start": "node app"
   },
   "dependencies": {
-    "express": "3.5.0",
+    "express": "^4.10.6",
     "jade": "*",
-    "async": "0.2.6",
-    "rpi-gpio": "0.0.4",
-    "socket.io": "0.9.16",
-    "pg": "3.0.3",
-    "nodemailer": "0.6.5"
+    "async": "0.9.0",
+    "rpi-gpio": "0.5.1",
+    "socket.io": "^1.2.1",
+    "pg": "4.1.1",
+    "nodemailer": "0.7.1",
+    "method-override": "^2.1.2",
+    "serve-favicon": "^2.2.0",
+    "multer": "^0.1.6",
+    "body-parser": "^1.10.1"
   }
 }

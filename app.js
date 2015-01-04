@@ -4,27 +4,29 @@ var express = require('express'),
     config = require('./config'),
     async = require('async'),
     gpio = require('rpi-gpio'),
+    methodOverride = require('method-override'),
     app = express(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
     pg = require('pg'),
-    nodemailer = require('nodemailer');
+    nodemailer = require('nodemailer'),
+    favicon = require('serve-favicon'),
+    bodyParser = require('body-parser'),
+    multer = require('multer');
 
 // persistant variables
 var gpio_state = new Array();
 var door_status = 'Unknown';
 
-app.configure(function(){
-    app.set('port', process.env.PORT || 3000);
-    app.set('views', __dirname + '/views');
-    app.set('view engine', 'jade');
-    app.use(express.favicon());
-    app.use(express.urlencoded());
-    app.use(express.json());
-    app.use(methodOverride());
-    app.use(app.router);
-    app.use(express.static(path.join(__dirname, 'public')));
-});
+app.set('port', process.env.PORT || 3000);
+app.set('views', path.join(__dirname,'views'));
+app.set('view engine', 'jade');
+app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(multer());
+app.use(methodOverride());
+app.use(express.static(path.join(__dirname, 'public')));
 
 server.listen(app.get('port'))
 console.log("Listening on port " + app.get('port'));
@@ -80,8 +82,8 @@ gpio.on('change', function(channel, value) {
 });
 
 io.sockets.on('connection', function (socket) {
-    var connectAddr = socket.handshake.address;
-    console.log("New connection from " + connectAddr.address + ":" + connectAddr.port);
+    var connectAddr = socket.request.connection;
+    console.log("New connection from " + connectAddr.remoteAddress + ":" + connectAddr.remotePort);
 
     // connected
     socket.emit('cok', 'Connected');
