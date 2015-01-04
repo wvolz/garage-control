@@ -1,17 +1,17 @@
 $(function() {
     $('#container').hide();
     var socket = io.connect("http://garagepi.local:3000/");
-    var status = 'Unknown';
+    var door_status = 'Unknown';
     
     socket.on('cok', function(data) {
-        socket.emit('status', 'can i get status?');
+        socket.emit('dstatus', 'can i get status?');
         $('#container').show();
         updateLogText(data);
     });
     
     socket.on('ginfo', function(data) {
-        status = data;
-        $('#statusbtn').text('Garage is: ' + status);
+        door_status = data;
+        $('#statusbtn').text('Garage is: ' + door_status);
         setActionButtonText();
     });
     
@@ -21,7 +21,7 @@ $(function() {
 
     $('button#statusbtn').click(function() {
         $('#statusbtn .btn-text').text('Garage is: ...........');
-        socket.emit('status', 'got status?');
+        socket.emit('dstatus', 'got status?');
     });
 
     $('button#actionbtn').click(function() {
@@ -30,7 +30,7 @@ $(function() {
     
     function setActionButtonText() {
         var text = 'refresh status';
-        if (status == 'Open') { text = 'Close it!'; }
+        if (door_status == 'Open') { text = 'Close it!'; }
         $('#actionbtn .btn-text').text(text);
     };
 

@@ -12,7 +12,7 @@ var express = require('express'),
 
 // persistant variables
 var gpio_state = new Array();
-var status = 'Unknown';
+var door_status = 'Unknown';
 
 app.configure(function(){
     app.set('port', process.env.PORT || 3000);
@@ -21,7 +21,7 @@ app.configure(function(){
     app.use(express.favicon());
     app.use(express.urlencoded());
     app.use(express.json());
-    app.use(express.methodOverride());
+    app.use(methodOverride());
     app.use(app.router);
     app.use(express.static(path.join(__dirname, 'public')));
 });
@@ -37,7 +37,7 @@ function delayPinWrite(pin, value, callback) {
     }, config.RELAY_TIMEOUT);
 }
 
-// config up down monitor pins to report status
+// config up down monitor pins to report door status
 gpio.setup(config.GARAGE_DOWN, gpio.DIR_IN);
 gpio.setup(config.GARAGE_UP, gpio.DIR_IN);
 gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
@@ -45,32 +45,37 @@ gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
 // code below to listen for changes to gpio
 gpio.on('change', function(channel, value) {
     //console.log("GPIO STATUS C: " + channel + " V: " + value);
-    var old_status = status;
-    if (channel == config.GARAGE_DOWN) {
-        if (gpio_state[config.GARAGE_UP] == false) {
-            if (value == true) status = 'DOWN';
-            if (value == false) status = 'BTWN';
-            io.sockets.emit('ginfo', status);
-            io.sockets.emit('log', status);
-            log_action_to_db(status);
-            send_email_notify(status);
-            //console.log("GARAGE_GPIO " + status);
-        }
+    var old_door_status = door_status;
+
+    if (channel == config.GARAGE_DOWN
+        || channel == config.GARAGE_UP) {
+        //console.log("gpio MATCH up/down pins");
+
+        /* states: [GARAGE_UP, GARAGE_DOWN]
+         * garage up [true, false],
+         * garage down [false, true],
+         * garage between [false, false]
+         * unknown [unknown, unknown]
+         */
+
+        gpio_up_state = gpio_state[config.GARAGE_UP]
+        gpio_down_state = gpio_state[config.GARAGE_DOWN]
+
+        if (gpio_up_state == true && gpio_down_state == false)
+            door_status = 'UP';
+        if (gpio_up_state == false && gpio_down_state == true)
+            door_status = 'DOWN';
+        if (gpio_up_state == false && gpio_down_state == false)
+            door_status = 'BTWN';
     }
-    if (channel == config.GARAGE_UP) {
-        if (gpio_state[config.GARAGE_DOWN] == false) {
-            if (value == true) status = 'UP';
-            if (value == false) status = 'BTWN';
-            io.sockets.emit('ginfo', status);
-            io.sockets.emit('log', status);
-            log_action_to_db(status);
-            send_email_notify(status);
-            //console.log("GARAGE_GPIO " + status);
-        }
-    }
-    if (old_status != status) {
-        console.log("GPIO Change, new status: " + status
-                    + " Old: " + old_status);
+
+    if (old_door_status != door_status) {
+        console.log("GPIO Change, new door status: " + door_status
+                    + " Old: " + old_door_status);
+        io.sockets.emit('ginfo', door_status);
+        io.sockets.emit('log', door_status);
+        log_action_to_db(door_status);
+        send_email_notify(door_status);
     }
 });
 
@@ -81,10 +86,10 @@ io.sockets.on('connection', function (socket) {
     // connected
     socket.emit('cok', 'Connected');
 
-    // client requesting status
-    socket.on('status', function (data) {
+    // client requesting door status
+    socket.on('dstatus', function (data) {
         console.log('Status requested: ' + data);
-        socket.emit('ginfo', status);
+        socket.emit('ginfo', door_status);
     });
 
     // garage move
@@ -120,6 +125,7 @@ function gpio_read_state_pin(pin, emit_change) {
                 console.log("p: " + pin + "c: " + cur_state + "v: " + value);
                 var prev_state = cur_state;
                 gpio_state[pin] = value;
+                //console.log("gpio_state[ "+pin+" ] = "+value);
                 if (emit_change) {
                     gpio.emit('change', pin, value);
                 }
