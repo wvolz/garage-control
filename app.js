@@ -160,7 +160,11 @@ function send_email_notify(msg) {
     });
 }
 
-setInterval(function(){
+function check_gpio_state() {
+    //console.log('check gpio state');
     gpio_read_state_pin(config.GARAGE_DOWN);
     gpio_read_state_pin(config.GARAGE_UP);
-}, 200); // check state every 200ms
+}
+
+//check GPIO state every 200ms
+setInterval(check_gpio_state, 200);
