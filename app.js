@@ -151,20 +151,26 @@ function log_action_to_db(action) {
 }
 
 function send_email_notify(msg) {
-    var smtpTransport = nodemailer.createTransport("SMTP");
+    var transporter = nodemailer.createTransport({
+        host: 'localhost',
+        tls: {
+            // need to use this setting with self-signed certs
+            rejectUnauthorized: false 
+        }
+    });
     var mailOptions = {
         from: config.notify_from,
         to: config.notify_to,
         subject: "Garage Notification: " + msg,
         text: "Notification of garage action: " + msg
     }
-    smtpTransport.sendMail(mailOptions, function(error, response){
+    transporter.sendMail(mailOptions, function(error, info){
         if(error) {
             console.log(error);
         } else {
-            console.log("Email notification sent: " + response.message);
+            console.log("Email notification sent: " + info.response);
         }
-    	smtpTransport.close();
+    	transporter.close();
     });
 }
 
