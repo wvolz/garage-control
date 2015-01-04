@@ -1,6 +1,6 @@
 $(function() {
     $('#container').hide();
-    var socket = io.connect("http://192.168.0.150:3000/");
+    var socket = io.connect("http://garagepi.local:3000/");
     var status = 'Unknown';
     
     socket.on('cok', function(data) {
