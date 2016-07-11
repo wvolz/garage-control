@@ -12,11 +12,11 @@ config.RELAY_ON = 1;
 config.RELAY_OFF = 0;
 config.RELAY_TIMEOUT = 500;
 
-config.DB_CONNECT_STRING = '';
+config.DB_CONNECT_STRING = 'postgres://user:password@host/db?ssl=true';
 config.DB_LOG_TABLE = 'log';
 
 // email notification defaults
 config.notify_from = "Garage Pi <pi@garagepi>"
-config.notify_to = "changeme@host"
+config.notify_to = "user@email"
 
 module.exports = config;
