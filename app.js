@@ -1,7 +1,9 @@
 var express = require('express'),
+    favicon = require('serve-favicon'),
     routes = require('./routes'),
     path = require('path'),
     config = require('./config'),
+    logger = require('morgan'),
     async = require('async'),
     gpio = require('rpi-gpio'),
     methodOverride = require('method-override'),
@@ -10,9 +12,9 @@ var express = require('express'),
     io = require('socket.io').listen(server),
     pg = require('pg'),
     nodemailer = require('nodemailer'),
-    favicon = require('serve-favicon'),
     bodyParser = require('body-parser'),
-    multer = require('multer');
+    multer = require('multer'),
+    errorHandler = require('errorhandler');
 
 // persistant variables
 var gpio_state = new Array();
@@ -22,16 +24,23 @@ app.set('port', process.env.PORT || 3000);
 app.set('views', path.join(__dirname,'views'));
 app.set('view engine', 'jade');
 app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(logger('dev'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(multer());
 app.use(methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
 
-server.listen(app.get('port'))
-console.log("Listening on port " + app.get('port'));
-
 app.get('/', routes.index);
+
+// extra error handling for development
+if ('development' == app.get('env')) {
+    app.use(errorHandler());
+}
+
+server.listen(app.get('port'), function() {
+    console.log("Listening on port " + app.get('port'));
+});
 
 function delayPinWrite(pin, value, callback) {
     setTimeout(function() {
@@ -120,7 +129,7 @@ function gpio_read_state_pin(pin, emit_change) {
     emit_change = emit_change || true;
     gpio.read(pin, function(err, value) {
         if (err){
-            console.log("ERR: " + err);
+            console.log("ERROR: gpio_read_state_pin pin[" + pin + "] " + err);
         } else {
             cur_state = gpio_state[pin];
             if(cur_state !== value) {
