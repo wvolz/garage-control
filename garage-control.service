@@ -1,0 +1,10 @@
+[Unit]
+Description=Garage control service
+
+[Service]
+ExecStart=/usr/local/bin/node /home/pi/garage-control/app.js
+Restart=always
+RestartSec=10                       # Restart service after 10 seconds if node service crashes
+
+[Install]
+WantedBy=multi-user.target
