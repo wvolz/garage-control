@@ -189,3 +189,10 @@ function check_gpio_state() {
 
 //check GPIO state every 200ms
 setInterval(check_gpio_state, 200);
+
+process.on('SIGINT', function() {
+    gpio.destroy(function() {
+        console.log('All pins unexported');
+    });
+    process.exit(1);
+})
