@@ -159,7 +159,7 @@ function log_action_to_db(action) {
 
 function send_email_notify(msg) {
     var transporter = nodemailer.createTransport({
-        host: 'localhost',
+        host: config.SMTP_SERVER,
         tls: {
             // need to use this setting with self-signed certs
             rejectUnauthorized: false 

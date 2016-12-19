@@ -16,6 +16,7 @@ config.DB_CONNECT_STRING = 'postgres://user:password@host/db?ssl=true';
 config.DB_LOG_TABLE = 'log';
 
 // email notification defaults
+config.SMTP_SERVER = 'localhost';
 config.notify_from = "Garage Pi <pi@garagepi>"
 config.notify_to = "user@email"
 

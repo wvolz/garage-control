@@ -46,6 +46,7 @@ the following variables to get started:
  * `RELAY_TIMEOUT` - How long the relay should stay on before turning off.
  * `DB_CONNECT_STRING` - database connection string
  * `DB_LOG_TABLE` - table in the DB used to store door state changes
+ * `SMTP_SERVER` - smtp server to use for emails
  * `notify_from` - who state change emails should come from (email address/name)
  * `notify_to` - who state change emails should be sent to
 
