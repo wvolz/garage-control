@@ -24,24 +24,12 @@ It has the following additional features:
 
 1. Checkout code from github into a local directory
 2. Install nodejs:
-   On Debian based systems you can run the following to install node:
-    ``` shell
-    [sudo] apt-get install nodejs npm
-    ```
-3. Install node dependencies:
-    ``` shell
-    npm install
-    ```
+   On Debian based systems you can run the following to install node: `[sudo] apt-get install nodejs npm`
+3. Install node dependencies: `npm install`
 4. Copy init or systemd service script to the correct place
 5. Copy config.js.sample to config.js and change for your hardware
-6. Start process:
-    ``` shell
-    service garage-control start
-    ```
-7. Check process is running:
-    ``` shell
-    service garage-control status
-    ```
+6. Start process: `service garage-control start`
+7. Check process is running: `service garage-control status`
 
 ## Configuration
 
@@ -62,7 +50,8 @@ the following variables to get started:
 
 ## Parts
 
- * Raspberry Pi running Raspbian "jessie"
+ * Raspberry Pi B v2 (or something more current)
+ * 4-8 GB SDcard with Raspbian "jessie"
  * Edimax EW-7811Un (WiFi dongle, b/g/n)
  * SainSmart 2-Channel Relay
  * [Seco-Larm SM-217Q](http://www.smarthome.com/seco-larm-enforcer-sm-217q-w-miniature-surface-mount-contact-magnet.html)
