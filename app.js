@@ -3,9 +3,8 @@ var express = require('express'),
     routes = require('./routes'),
     path = require('path'),
     config = require('./config'),
-    async = require('async'),
-    gpio = require('rpi-gpio'),
     morgan = require('morgan'),
+    gpio = require('onoff').Gpio,
     methodOverride = require('method-override'),
     app = express(),
     server = require('http').createServer(app),
@@ -44,43 +43,58 @@ server.listen(app.get('port'), function() {
     logger.info("Listening on port " + app.get('port'));
 });
 
-function delayPinWrite(pin, value, callback) {
-    setTimeout(function() {
-        gpio.write(pin, value, callback);
+// config up down monitor pins to report door status
+garage_down = new gpio(config.GARAGE_DOWN, 'in', 'both');
+garage_up = new gpio(config.GARAGE_UP, 'in', 'both');
+garage_move = new gpio(config.GARAGE_PIN, 'out');
+
+garage_down.watch(function(err, value) {
+    handleGpioChange(config.GARAGE_DOWN, value, door_state_check);
+});
+
+garage_up.watch(function(err, value) {
+    handleGpioChange(config.GARAGE_UP, value, door_state_check);
+});
+
+// move garage door, optional callback
+function moveGarageDoor(callback) {
+    //from https://github.com/scoobyshi/garagejs/blob/master/garage.js
+    logger.debug("Moving garage door");
+
+    // after config.RELAY_TIMEOUT turn relay off
+    setTimeout(function () {
+        garage_move.write(config.RELAY_OFF);
     }, config.RELAY_TIMEOUT);
+    // below will be called first and then above will trigger later
+    garage_move.write(config.RELAY_ON);
+
+    if (callback) {
+        callback();
+    }
 }
 
-// config up down monitor pins to report door status
-gpio.setup(config.GARAGE_DOWN, gpio.DIR_IN);
-gpio.setup(config.GARAGE_UP, gpio.DIR_IN);
-gpio.setup(config.GARAGE_PIN, gpio.DIR_OUT);
-
-// code below to listen for changes to gpio
-gpio.on('change', function(channel, value) {
-    //console.log("GPIO STATUS C: " + channel + " V: " + value);
+// determine current state of door
+//gpio.on('change', function(channel, value) {
+function door_state_check() {
     var old_door_status = door_status;
 
-    if (channel == config.GARAGE_DOWN
-        || channel == config.GARAGE_UP) {
-        //console.log("gpio MATCH up/down pins");
+    logger.debug("update door state");
+    /* states: [GARAGE_UP, GARAGE_DOWN]
+     * garage up [true, false],
+     * garage down [false, true],
+     * garage between [false, false]
+     * unknown [unknown, unknown]
+     */
 
-        /* states: [GARAGE_UP, GARAGE_DOWN]
-         * garage up [true, false],
-         * garage down [false, true],
-         * garage between [false, false]
-         * unknown [unknown, unknown]
-         */
-
-        gpio_up_state = gpio_state[config.GARAGE_UP]
-        gpio_down_state = gpio_state[config.GARAGE_DOWN]
-
-        if (gpio_up_state == true && gpio_down_state == false)
-            door_status = 'UP';
-        if (gpio_up_state == false && gpio_down_state == true)
-            door_status = 'DOWN';
-        if (gpio_up_state == false && gpio_down_state == false)
-            door_status = 'BTWN';
-    }
+    gpio_up_state = gpio_state[config.GARAGE_UP]
+    gpio_down_state = gpio_state[config.GARAGE_DOWN]
+    
+    if (gpio_up_state == true && gpio_down_state == false)
+        door_status = 'UP';
+    if (gpio_up_state == false && gpio_down_state == true)
+        door_status = 'DOWN';
+    if (gpio_up_state == false && gpio_down_state == false)
+        door_status = 'BTWN';
 
     if (old_door_status != door_status) {
         logger.info("new door status: " + door_status
@@ -90,7 +104,7 @@ gpio.on('change', function(channel, value) {
         log_action_to_db(door_status);
         send_email_notify(door_status);
     }
-});
+}
 
 io.sockets.on('connection', function (socket) {
     var connectAddr = socket.request.connection;
@@ -102,48 +116,33 @@ io.sockets.on('connection', function (socket) {
     // client requesting door status
     socket.on('dstatus', function (data) {
         logger.debug('Status requested: ' + data);
+        door_state_check();
         socket.emit('ginfo', door_status);
     });
 
     // garage move
     socket.on('move', function (data) {
-
-        async.series([
-            function(callback) {
-                gpio.write(config.GARAGE_PIN, config.RELAY_ON, function(err) {
-                    if (err) throw err;
-                });
-                callback();
-            },
-            function(callback) {
-                delayPinWrite(config.GARAGE_PIN, config.RELAY_OFF, callback); 
-            }
-        ]);
-
         logger.info('Requesting garage movement, data: ' + data);
+        moveGarageDoor();
         socket.emit('log', 'Garage moved');
     });
 });
 
-function gpio_read_state_pin(pin, emit_change) {
-    //console.trace("gpio read");
-    // default value for emit_change = true
-    emit_change = emit_change || true;
-    gpio.read(pin, function(err, value) {
-        if (err){
-            console.log("ERROR: gpio_read_state_pin pin[" + pin + "] " + err);
-        } else {
-            cur_state = gpio_state[pin];
-            if(cur_state !== value) {
-                console.log("p: " + pin + "c: " + cur_state + "v: " + value);
-                var prev_state = cur_state;
-                gpio_state[pin] = value;
-                //console.log("gpio_state[ "+pin+" ] = "+value);
-                if (emit_change) {
-                    gpio.emit('change', pin, value);
-                }
-            }
-        }
+// updates GPIO state table
+function handleGpioChange(pin, value, callback) {
+    logger.debug("GPIO pin " + pin + " value update = " + value);
+    // TODO should we check current value first?
+    gpio_state[pin] = value;
+    callback();
+}
+
+// reads the state of the door instead of waiting for polling
+function readDoorState() {
+    garage_down.read(function(err, value) {
+        handleGpioChange(config.GARAGE_DOWN, value, door_state_check);
+    });
+    garage_up.read(function(err, value) {
+        handleGpioChange(config.GARAGE_UP, value, door_state_check);
     });
 }
 
@@ -181,22 +180,21 @@ function send_email_notify(msg) {
         } else {
             logger.info("Email notification sent: " + info.response);
         }
-    	transporter.close();
+        transporter.close();
     });
 }
 
-function check_gpio_state() {
-    //console.log('check gpio state');
-    gpio_read_state_pin(config.GARAGE_DOWN);
-    gpio_read_state_pin(config.GARAGE_UP);
-}
-
-//check GPIO state every 200ms
-setInterval(check_gpio_state, 200);
+// initial run of readdoorstate to update values in beginning, run only once
+// immediate function
+(function initDoorCheck() {
+    readDoorState();
+}());
 
 process.on('SIGINT', function() {
-    gpio.destroy(function() {
-        console.log('All pins unexported');
-    });
+    logger.info('Got SIGINT');
+    garage_move.unexport();
+    garage_down.unexport();
+    garage_up.unexport();
+    logger.info('All pins unexported');
     process.exit(1);
 })
