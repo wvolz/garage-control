@@ -1,12 +1,12 @@
 var config = {};
 
-// pin # not GPIO #
-// gpio 17
-config.GARAGE_PIN = 11;
-// gpio 22
-config.GARAGE_DOWN = 15;
-// gpio 23
-config.GARAGE_UP = 16;
+// GPIO # not pin #
+// gpio 17 = rpi pin 11 
+config.GARAGE_PIN = 17;
+// gpio 22 = rpi pin 15 
+config.GARAGE_DOWN = 22;
+// gpio 23 = rpi pin 16 
+config.GARAGE_UP = 23;
 
 config.RELAY_ON = 1;
 config.RELAY_OFF = 0;
