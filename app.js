@@ -3,9 +3,9 @@ var express = require('express'),
     routes = require('./routes'),
     path = require('path'),
     config = require('./config'),
-    logger = require('morgan'),
     async = require('async'),
     gpio = require('rpi-gpio'),
+    morgan = require('morgan'),
     methodOverride = require('method-override'),
     app = express(),
     server = require('http').createServer(app),
@@ -13,17 +13,21 @@ var express = require('express'),
     pg = require('pg'),
     nodemailer = require('nodemailer'),
     bodyParser = require('body-parser'),
-    errorHandler = require('errorhandler');
+    errorHandler = require('errorhandler'),
+    logger = require('winston');
 
 // persistant variables
 var gpio_state = new Array();
 var door_status = 'Unknown';
 
+// set logger level to debug
+logger.level = 'debug';
+
 app.set('port', process.env.PORT || 3000);
 app.set('views', path.join(__dirname,'views'));
 app.set('view engine', 'pug');
 app.use(favicon(__dirname + '/public/favicon.ico'));
-app.use(logger('dev'));
+app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(methodOverride());
@@ -37,7 +41,7 @@ if ('development' == app.get('env')) {
 }
 
 server.listen(app.get('port'), function() {
-    console.log("Listening on port " + app.get('port'));
+    logger.info("Listening on port " + app.get('port'));
 });
 
 function delayPinWrite(pin, value, callback) {
@@ -79,7 +83,7 @@ gpio.on('change', function(channel, value) {
     }
 
     if (old_door_status != door_status) {
-        console.log("GPIO Change, new door status: " + door_status
+        logger.info("new door status: " + door_status
                     + " Old: " + old_door_status);
         io.sockets.emit('ginfo', door_status);
         io.sockets.emit('log', door_status);
@@ -90,20 +94,19 @@ gpio.on('change', function(channel, value) {
 
 io.sockets.on('connection', function (socket) {
     var connectAddr = socket.request.connection;
-    console.log("New connection from " + connectAddr.remoteAddress + ":" + connectAddr.remotePort);
+    logger.info("New connection from " + connectAddr.remoteAddress + ":" + connectAddr.remotePort);
 
     // connected
     socket.emit('cok', 'Connected');
 
     // client requesting door status
     socket.on('dstatus', function (data) {
-        console.log('Status requested: ' + data);
+        logger.debug('Status requested: ' + data);
         socket.emit('ginfo', door_status);
     });
 
     // garage move
     socket.on('move', function (data) {
-        console.log('Requesting garage movement, data: ' + data);
 
         async.series([
             function(callback) {
@@ -117,6 +120,7 @@ io.sockets.on('connection', function (socket) {
             }
         ]);
 
+        logger.info('Requesting garage movement, data: ' + data);
         socket.emit('log', 'Garage moved');
     });
 });
@@ -173,9 +177,9 @@ function send_email_notify(msg) {
     }
     transporter.sendMail(mailOptions, function(error, info){
         if(error) {
-            console.log(error);
+            logger.error(error);
         } else {
-            console.log("Email notification sent: " + info.response);
+            logger.info("Email notification sent: " + info.response);
         }
     	transporter.close();
     });
