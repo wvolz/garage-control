@@ -10,37 +10,47 @@ It has the following additional features:
 
 ## Requirements
 
-[node.js](http://nodejs.org/)
-
-``` shell
-[sudo] apt-get install nodejs npm
-```
-
-Something to run the process (forever?)
-
-## Installation
-
-After checking out this code from Github, just run `npm install` from the app directory to install all dependencies.
-
-## Dependencies Used
-
+ * [node.js](http://nodejs.org/) v4.4.x
+ * systemd or forever to run the script long term (init/service scripts provided)
  * [Express](http://expressjs.com/)
- * Jade - For the one view template.
- * [async.js](https://github.com/caolan/async)
- * rpi-gpio
+ * [Pug](https://github.com/pugjs/pug) - For the one view template.
+ * [onoff](https://github.com/fivdi/onoff) - GPIO access
  * socket-io
  * database driver of your choice (tested with pg)
  * nodemailer
- * serve-favicon
+ * winston
+
+## Installation
+
+1. Checkout code from github into a local directory
+2. Install nodejs:
+   On Debian based systems you can run the following to install node:
+    ``` shell
+    [sudo] apt-get install nodejs npm
+    ```
+3. Install node dependencies:
+    ``` shell
+    npm install
+    ```
+4. Copy init or systemd service script to the correct place
+5. Copy config.js.sample to config.js and change for your hardware
+6. Start process:
+    ``` shell
+    service garage-control start
+    ```
+7. Check process is running:
+    ``` shell
+    service garage-control status
+    ```
 
 ## Configuration
 
 Configuration is accomplished via a file called 'config.js'. Rename the file 'config.js.sample' to 'config.js' and edit
 the following variables to get started:
 
- * `GARAGE_PIN` - Location of the gpio pin controlling the garage door. Using the pin map from the `pi-gpio` README.
- * `GARAGE_DOWN` - Pin connected to sensor indicating the garage is down.
- * `GARAGE_UP` - Pin connected to sensor indicating the garage is up. 
+ * `GARAGE_PIN` - GPIO # controlling the relay connected to the garage opener.
+ * `GARAGE_DOWN` - GPIO # connected to sensor indicating the garage is down.
+ * `GARAGE_UP` - GPIO # connected to sensor indicating the garage is up. 
  * `RELAY_ON` - Relay on state.
  * `RELAY_OFF` - Relay off state.
  * `RELAY_TIMEOUT` - How long the relay should stay on before turning off.
@@ -50,17 +60,14 @@ the following variables to get started:
  * `notify_from` - who state change emails should come from (email address/name)
  * `notify_to` - who state change emails should be sent to
 
-## Gotchas
-
-My particular relay I used turns on when you fire low `0`, and off when firing high `1`. The app them use the `RELAY_TIMEOUT` to simulate a half second press, as if you pushed the wall switch.
-
-The Raspberry Pi defaults the GPIO pin to low, but the pin is default set to input so it will not immediately fire on bootup. On first call the pin is opened for output and immediately low which turns on the relay since it's in the low state and making the set low call redundant but the relay is set high in the next call so it will need to be set low again on the next call.
-
 ## Parts
 
- * Raspberry Pi running Raspbian "wheezy"
+ * Raspberry Pi running Raspbian "jessie"
  * Edimax EW-7811Un (WiFi dongle, b/g/n)
  * SainSmart 2-Channel Relay
+ * [Seco-Larm SM-217Q](http://www.smarthome.com/seco-larm-enforcer-sm-217q-w-miniature-surface-mount-contact-magnet.html)
+ * Cat 5 cable for wiring (It's what I had on hand)
+ * Power supply for the Pi
 
 ## Links
 
