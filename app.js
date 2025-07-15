@@ -1,3 +1,5 @@
+const { Server } = require('socket.io');
+
 var express = require('express'),
     favicon = require('serve-favicon'),
     routes = require('./routes'),
@@ -8,7 +10,6 @@ var express = require('express'),
     methodOverride = require('method-override'),
     app = express(),
     server = require('http').createServer(app),
-    io = require('socket.io').listen(server),
     pg = require('pg'),
     nodemailer = require('nodemailer'),
     bodyParser = require('body-parser'),
@@ -18,6 +19,7 @@ var express = require('express'),
 // persistant variables
 var gpio_state = new Array();
 var door_status = 'Unknown';
+const io = new Server(server);
 
 // set logger level to debug
 logger.level = 'debug';

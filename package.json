@@ -11,12 +11,12 @@
     "express": "^4.14.0",
     "method-override": "^2.3.6",
     "morgan": "^1.7.0",
-    "nodemailer": "2.5.0",
-    "onoff": "^1.1.1",
-    "pg": "6.0.2",
-    "pug": "2.0.0-beta3",
+    "nodemailer": "6.9.9",
+    "onoff": "^6.0.3",
+    "pg": "8.4.0",
+    "pug": "3.0.3",
     "serve-favicon": "^2.3.0",
-    "socket.io": "^1.4.8",
+    "socket.io": "^4.8.1",
     "winston": "^2.3.1"
   }
 }

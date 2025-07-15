@@ -10,7 +10,7 @@ It has the following additional features:
 
 ## Requirements
 
- * [node.js](http://nodejs.org/) v4.4.x
+ * [node.js](http://nodejs.org/) v20.9.0
  * systemd or forever to run the script long term (init/service scripts provided)
  * [Express](http://expressjs.com/)
  * [Pug](https://github.com/pugjs/pug) - For the one view template.
